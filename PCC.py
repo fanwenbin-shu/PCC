@@ -56,7 +56,7 @@ class PCC():
     def read_sym_operator(self, pg):
 
         print('Reading symmetry operator `{}`...'.format(pg))
-        path = 'SO_{}'.format(pg)
+        path = r'space_group/SO_{}'.format(pg)
         try:
             f = open(path, 'r').readlines()
         except:
@@ -222,7 +222,7 @@ class PCC():
         for atom in range(self.Natom):
             g.write('{}    {:18.12f}    {:18.12f}    {:18.12f}\n'.format(self.ele_list[atom], *self.q[:,atom]))
         g.write('\n')
-        g.write('-C -N -O -H -F -Cl 0\n6-31g*\n****\n-Mn -Br -I 0\nSDD\n****\n\n')
+        g.write('-C -N -O -H -F -Cl 0\n6-311g*\n****\n-Mn -Br -I 0\nSDD\n****\n\n')
         g.write('-Mn -Br 0\nSDD\n\n')
         # g.write('antechamber-ini.esp\n\nantechamber.esp\n\n')
         g.write('\n\n\n')
