@@ -13,7 +13,7 @@ Please CITE the article (10.1016/j.cplett.2019.06.019) if PCC or this ePCC code 
 
 The short-ranged electric interaction is significant in a MD simulation. Nearly all types of atomic charge only describe the charge of molecules in vacuum. But how does the atomic charge changed in the periodic crystal? 
 
-Prof. Yongle proposed a refined method, polarized crystal charge (PCC), based on polarized protein-specific charge (PCC). The PCC is suitable for any periodic system. We can obtain PCCs easily using Gaussian package. 
+Prof. Yongle proposed a refined method, polarized crystal charge (PCC), based on polarized protein-specific charge (PCC). The PCC is suitable for any periodic system. We can obtain PCCs easily using Gaussian and Multiwfn. 
 
 # Usage
 
@@ -28,9 +28,11 @@ The Gaussian (>= 16, https://gaussian.com) and Multiwfn (>= 3.7, http://sobereva
 
 The python program and shell script will do these things to obtain a converged PCCs. 
 
-1. Read `CONTCAR` or `POSCAR` in current folder `./`. Convert to Gaussian input file (.gjf). 
+1. Read `CONTCAR` or `POSCAR` in current folder `./`. Create folder `./0/`. Convert to Gaussian input file (`./0/0.gjf`). 
 2. Find all symmetry atoms based on SO. All symmetry atoms will be written in one line at `./sym_atom`. This symmetry will be used in later RESP fitting. 
-3. 
+3. Gaussian SCF. The atomic charge will be fitted by Multiwfn. (Note that there are extra line break if there are heavy atoms. Because there are not vdW radius defined in Multiwfn. We will be prompted to confirm the default radius. Please check this if you are about to fit a big system. )
+4. `<i>` represents the current step. Create folder `./<i>`. The point charge will be added. Gaussian input file is written in `./<i>/<i>.gjf`. The last `.chk` file will be read as initial orbit guess in order to accelerate the SCF. 
+5. RESP fit. This procedure terminates when the maximum of charge difference between two steps is less than the value defined in `PCC_para.py` (usually `1E-6`). Or go back to 4th step and `i++`. 
 
 ## File format for symmetry operation
 
@@ -51,4 +53,3 @@ We should define the SO as below.
 0.5    0.5    0.0
 
 ```
-

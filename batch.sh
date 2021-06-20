@@ -2,46 +2,64 @@
 
 pwd=`pwd`
 dos2unix *
-rm -f *fuse*
 
-python PCC.py 0
+python_log=${pwd}/PCC_python.log
+rm -f ${python_log}
+resp_input=${pwd}/resp.in
+rm -f ${resp_input}
+rm -f sym_atom
+
+cat > ${resp_input} <<EOF
+7
+18
+5
+1
+${pwd}/sym_atom
+1
+y
+0
+0
+q
+
+EOF
+
+python PCC.py 0 | tee -a ${python_log}
 
 cd 0
-g16 < 0.gjf > 0.log
-Multiwfn <<EOF
-0.chk
-7
-18
-5
-1
-sym_atom
-1
-y
-0
-0
-q
-EOF
+g16 < 0.gjf | tee 0.log
+Multiwfn 0.chk < ${resp_input}
 cd ${pwd}
 
-for (( i=0; i<=10; i++ ))
+for (( i=1; i<=100; i++ ))
 do
 echo ${i}
-python PCC.py ${i} | tee ${i}_pcc.log
+
+if [ -f "${i}/${i}.chg" ]; then
+break
+fi
+
+python PCC.py ${i} | tee -a ${python_log}
+cov=`grep -c "PCC converged!" ${python_log}`
+
+if [ ${cov} -eq 1 ];then
+break
+fi
+
 cd ${i}
 dos2unix *
-g16 < ${i}.gjf > ${i}.log
-Multiwfn <<EOF
-0.chk
-7
-18
-5
-1
-sym_atom
-1
-y
-0
-0
-q
-EOF
+
+#last_i=`expr ${i} - 1`
+#cp ${pwd}/${last_i}/${last_i}.chk .
+g16 < ${i}.gjf | tee ${i}.log
+Multiwfn ${i}.chk < ${resp_input}
 cd ${pwd}
 done
+
+if [ ${cov} -eq 1 ]; then
+python PCC.py p
+else
+echo 'PCC not converged! '
+fi
+
+rm -f *fuse*
+rm -rf __pycache__
