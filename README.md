@@ -22,7 +22,7 @@ The Gaussian (>= 16, https://gaussian.com) and Multiwfn (>= 3.7, http://sobereva
 1. Prepare the P1 structure file `CONTCAR` in VASP format. The free visualization software VESTA (http://jp-minerals.org/vesta/en/) is recommend. 
 2. Set the parameters in `PCC_para.py`. 
 3. Define the space group and corresponding symmetry operation (SO) in `./space_group/SO_<space group number>`. 
-4. Run `./batch.sh` the PCC calculation will start. 
+4. Run `./batch.sh`, then the PCC calculation will start. 
 
 # Procedure
 

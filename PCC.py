@@ -24,8 +24,11 @@ class PCC():
         self.space_group = space_group
         self.gau_memory = gau_memory
         self.gau_nprocs = gau_nprocs
+        self.gau_method = gau_method
+        self.gau_basis = gau_basis
+        self.gau_maxcycle = gau_maxcycle
         self.max_diff_crt = max_diff_crt
-
+        
         return
 
 
@@ -105,6 +108,7 @@ class PCC():
         judge_record = np.zeros(Natom)
 
         f = open('sym_atom', 'w')
+        k = open('sym_atom_CP2K', 'w')
 
         for i in range(Natom-1):
             if judge_record[i] > -50:
@@ -138,9 +142,12 @@ class PCC():
                             break
 
             if len(sym_list) > 1:
+                k.write('&CONSTRAINT\n  EQUAL_CHARGES\n  ATOM_LIST')
                 for s in sym_list:
                     f.write('{}, '.format(s+1))
+                    k.write(' {}'.format(s+1))
                 f.write('\n')
+                k.write('\n&END\n')
 
         return
 
@@ -213,8 +220,9 @@ class PCC():
         g.write('%chk=0.chk\n')
         g.write('%nprocs={}\n'.format(self.gau_nprocs))
         g.write('%mem={}GB\n'.format(self.gau_memory))
-        g.write('#p b3lyp/genecp nosymm\n')
-        g.write('scf(maxcycle=1024)\n')
+        g.write('#p {}/genecp '.format(self.gau_method))
+        g.write('nosymm\n')
+        g.write('scf(maxcycle={})\n'.format(self.gau_maxcycle))
         g.write('\n')
         g.write('initial ab inito calculation for PCC\n\n')
         g.write('{} {}\n'.format(self.charge, self.sm))
@@ -222,7 +230,8 @@ class PCC():
         for atom in range(self.Natom):
             g.write('{}    {:18.12f}    {:18.12f}    {:18.12f}\n'.format(self.ele_list[atom], *self.q[:,atom]))
         g.write('\n')
-        g.write('-C -N -O -H -F -Cl 0\n6-311g*\n****\n-Mn -Br -I 0\nSDD\n****\n\n')
+        g.write('-C -N -O -H -F -Cl 0\n{}\n****\n'.format(self.gau_basis))
+        g.write('-Mn -Br -I 0\nSDD\n****\n\n')
         g.write('-Mn -Br 0\nSDD\n\n')
         # g.write('antechamber-ini.esp\n\nantechamber.esp\n\n')
         g.write('\n\n\n')
@@ -287,7 +296,8 @@ class PCC():
         g.write('%chk={}.chk\n'.format(it))
         g.write('%nprocs={}\n'.format(self.gau_nprocs))
         g.write('%mem={}GB\n'.format(self.gau_memory))
-        g.write('#p b3lyp/genecp nosymm charge\n')
+        g.write('#p {}/genecp '.format(self.gau_method))
+        g.write('nosymm charge\n')
         g.write('scf(maxcycle=1024) guess=read\n')
         g.write('\n')
         g.write('Iteration {}, ab inito calculation for PCC\n\n'.format(it))
@@ -335,13 +345,14 @@ class PCC():
                                 p.write('{:8.3f}{:8.3f}{:8.3f}'.format(*q_new))
                                 p.write('{:6.2f}{:6.2f} {:>4d}     '.format(1.0, self.chg[atom], atom+1))
                                 p.write('{:>2s}{:2s}\n'.format('X', ''))
-                            else:
-                                print(x,y,z,atom,self.ele_list[atom])
+                            # else:
+                            #     print(x,y,z,atom,self.ele_list[atom])
                         p.write('TER     {:>3d}      MOL\n'.format(pbc_count))
                         pbc_count += 1
 
         g.write('\n')
-        g.write('-C -N -O -H -Cl 0\n6-311g*\n****\n-Mn -Br 0\nSDD\n****\n\n')
+        g.write('-C -N -O -H -Cl 0\n{}\n****\n'.format(self.gau_basis))
+        g.write('-Mn -Br 0\nSDD\n****\n\n')
         g.write('-Mn -Br 0\nSDD\n\n')
         g.write('\n\n\n')
         p.write('END')
