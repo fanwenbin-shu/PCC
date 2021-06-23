@@ -4,7 +4,7 @@ ePCC=ePCC
 
 #yes | cp "/mnt/hgfs/D/20210616 PCC/PCC.py" .
 pwd=`pwd`
-dos2unix *
+dos2unix -q *
 done=done
 mkdir ${done}
 
@@ -32,25 +32,12 @@ EOF
 echo [${ePCC}] Initial prework...
 python ${main} 0 | tee -a ${python_log}
 
-cd 0
-echo [${ePCC}] Initial Gaussian calculation...
-g16 < 0.gjf 1> 0.log 2>&1
-gaucov=`grep -c "Normal termination" 0.log`
-if [ ${gaucov} -eq 0 ]; then exit; fi
-echo [${ePCC}] Initial Multiwfn calculation...
-Multiwfn 0.chk < ${resp_input}
-cd ${pwd}
-
-for (( i=1; i<=100; i++ ))
+for (( i=0; i<=100; i++ ))
 do
 echo [${ePCC}] ${i} iteration...
 
-if [ -f "${i}/${i}.chg" ]; then
-break
-fi
-
 python ${main} ${i} | tee -a ${python_log}
-cov=`grep -c "PCC converged!" ${python_log}`
+cov=`grep -c -s 'PCC converged!' ${python_log}`
 
 if [ ${cov} -ge 1 ];then
 cp ${pwd}/${i}/${i}.chg ${pwd}/conv.chg
@@ -58,22 +45,41 @@ break
 fi
 
 cd ${i}
-dos2unix *
+dos2unix -q *
 
 echo [${ePCC}] Iteration ${i}, Gaussian calculation...
+gaucov=`grep -c -s 'Normal termination' ${i}.log`
+if [[ "${gaucov}" -eq 0 ]]; then
 g16 < ${i}.gjf 1> ${i}.log 2>&1
-gaucov=`grep -c "Normal termination" ${i}.log`
-if [ ${gaucov} -eq 0 ]; then exit; fi
+else
+echo [${ePCC}] Iteration ${i}, Gaussian calculation already completed! 
+fi
+gaucov=`grep -c -s 'Normal termination' ${i}.log`
+if [[ "${gaucov}" -eq 0 ]]; then
+echo [ERROR] Iteration ${i}, Gaussian not converged, ${ePCC} exit! 
+exit; fi
 
-Multiwfn ${i}.chk < ${resp_input}
+chgcov=`grep -c -s 'If outputting atom coordinates' ${i}_resp.log`
+if [[ "${chgcov}" -eq 0 ]]; then
+Multiwfn ${i}.chk < ${resp_input} 1> ${i}_resp.log 2>&1
+else
+echo [${ePCC}] Iteration ${i}, RESP already fitted! 
+fi
+
+chgcov=`grep -c -s 'If outputting atom coordinates' ${i}_resp.log`
+if [[ "${chgcov}" -eq 0 ]]; then
+echo [ERROR] Iteration ${i}, RESP fitting failure, check log please! ${ePCC} exit! 
+exit; fi
+
 cd ${pwd}
 done
 
 cd ${pwd}
-if [ ${cov} -ge 1 ]; then
+if [[ "${cov}" -gt 0 ]]; then
 python ${main} p
 else
-echo 'PCC not converged! '
+echo 'PCC not converged in specified steps! '
+exit
 fi
 
 for (( j=0; j<=${i}; j++ ))

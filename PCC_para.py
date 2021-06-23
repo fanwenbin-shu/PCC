@@ -10,8 +10,12 @@ gau_nprocs = 4
 gau_method = 'b3lyp'
 gau_basis = '6-31g*'
 gau_maxcycle = 4096
+gau_conv = 6 # 8 is default
 # space group
 space_group = 18
 
 # convergence criteria
 max_diff_crt = 1e-5
+
+# print level
+lcp2k = False

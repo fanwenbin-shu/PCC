@@ -27,7 +27,9 @@ class PCC():
         self.gau_method = gau_method
         self.gau_basis = gau_basis
         self.gau_maxcycle = gau_maxcycle
+        self.gau_conv = gau_conv
         self.max_diff_crt = max_diff_crt
+        self.lcp2k = lcp2k
         
         return
 
@@ -108,7 +110,8 @@ class PCC():
         judge_record = np.zeros(Natom)
 
         f = open('sym_atom', 'w')
-        k = open('sym_atom_CP2K', 'w')
+        if lcp2k:
+            k = open('sym_atom_CP2K', 'w')
 
         for i in range(Natom-1):
             if judge_record[i] > -50:
@@ -142,12 +145,15 @@ class PCC():
                             break
 
             if len(sym_list) > 1:
-                k.write('&CONSTRAINT\n  EQUAL_CHARGES\n  ATOM_LIST')
                 for s in sym_list:
                     f.write('{}, '.format(s+1))
-                    k.write(' {}'.format(s+1))
                 f.write('\n')
-                k.write('\n&END\n')
+                
+                if lcp2k:
+                    k.write('&CONSTRAINT\n  EQUAL_CHARGES\n  ATOM_LIST')
+                    for s in sym_list:
+                        k.write(' {}'.format(s+1))
+                    k.write('\n&END\n')
 
         return
 
@@ -222,7 +228,7 @@ class PCC():
         g.write('%mem={}GB\n'.format(self.gau_memory))
         g.write('#p {}/genecp '.format(self.gau_method))
         g.write('nosymm\n')
-        g.write('scf(maxcycle={})\n'.format(self.gau_maxcycle))
+        g.write('scf(maxcycle={}, conver={})\n'.format(self.gau_maxcycle, self.gau_conv))
         g.write('\n')
         g.write('initial ab inito calculation for PCC\n\n')
         g.write('{} {}\n'.format(self.charge, self.sm))
@@ -298,7 +304,8 @@ class PCC():
         g.write('%mem={}GB\n'.format(self.gau_memory))
         g.write('#p {}/genecp '.format(self.gau_method))
         g.write('nosymm charge\n')
-        g.write('scf(maxcycle=1024) guess=read\n')
+        g.write('scf(maxcycle={}, conver={}) '.format(self.gau_maxcycle, self.gau_conv))
+        g.write('guess=read\n')
         g.write('\n')
         g.write('Iteration {}, ab inito calculation for PCC\n\n'.format(it))
         g.write('{} {}\n'.format(self.charge, self.sm))
