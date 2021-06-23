@@ -13,6 +13,10 @@ class PCC():
         print('Thank Xiaoqing ZHU for the help of mastering PCC! \n')
 
         self.sym_delta = 1e-4
+        p3elements = ['H', 'He',
+                      'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+                      'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar']
+        self.p3elements = [i.upper() for i in p3elements]
 
         return
 
@@ -37,7 +41,6 @@ class PCC():
         
         return
 
-
     # https://stackoverflow.com/a/13849249/71522
     def angle_between(self, v1, v2):
         v1_u = v1 / np.linalg.norm(v1)
@@ -59,6 +62,22 @@ class PCC():
         alpha, beta, gamma = [x * 180 / np.pi for x in [alpha, beta, gamma]]
 
         self.lattice_para = [a,b,c, alpha, beta, gamma]
+
+        return
+
+    def print_resp_option(self):
+
+        f = open('resp.in', 'w')
+        f.write('7\n18\n5\n1\n../sym_atom\n1\n')
+
+        elements = list(set(self.ele_list))
+
+        for element in elements:
+            if element.upper() not in self.p3elements:
+                f.write('\n')
+
+        f.write('y\n0\n0\nq\n')
+        f.close()
 
         return
 
@@ -381,7 +400,7 @@ class PCC():
 
         chg_diff = np.abs(chg_new - chg_old)
         diff_max = np.max(chg_diff)
-        diff_var = np.var(chg_diff)
+        # diff_var = np.var(chg_diff) # not used
 
         if diff_max < self.max_diff_crt:
             print('PCC converged! ')
@@ -396,6 +415,7 @@ class PCC():
 
         self.write_init_gau()
         self.judge_sym()
+        self.print_resp_option()
 
         return
 
@@ -409,6 +429,9 @@ class PCC():
 
         self.read_chg(it-1)
         self.super_charge(it)
+
+        self.print_resp_option()
+        self.plot_chg()
 
         return
 
