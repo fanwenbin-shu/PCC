@@ -28,6 +28,10 @@ class PCC():
         self.gau_basis = gau_basis
         self.gau_maxcycle = gau_maxcycle
         self.gau_conv = gau_conv
+        if gau_symm:
+            self.gau_symm = ''
+        else:
+            self.gau_symm = 'nosymm'
         self.max_diff_crt = max_diff_crt
         self.lcp2k = lcp2k
         
@@ -76,10 +80,10 @@ class PCC():
             for j in range(3):
                 line = f[5*i + 3+j].strip().split()
                 assert len(line) == 3, '[ERR] Wrong operation matrix! line: `{}`'.format(line)
-                op[:,j,i] = [np.float(x) for x in line]
+                op[:,j,i] = [float(x) for x in line]
             line = f[5*i + 3 + 3].split()
             if len(line) == 3:
-                sf[:, i] = [np.float(x) for x in line]
+                sf[:, i] = [float(x) for x in line]
             elif len(line) == 0:
                 sf[:, i] = 0.0
             else:
@@ -168,18 +172,18 @@ class PCC():
                 exit()
         f = open(path, 'r').readlines()
 
-        factor = np.float(f[1])
+        factor = float(f[1])
         lattice_const = np.zeros([3,3])
 
-        lattice_const[:, 0] = [np.float(x) for x in f[2].split()]
-        lattice_const[:, 1] = [np.float(x) for x in f[3].split()]
-        lattice_const[:, 2] = [np.float(x) for x in f[4].split()]
+        lattice_const[:, 0] = [float(x) for x in f[2].split()]
+        lattice_const[:, 1] = [float(x) for x in f[3].split()]
+        lattice_const[:, 2] = [float(x) for x in f[4].split()]
 
         lattice_const *= factor
 
         # read element list
         ele_name = f[5].split()
-        ele_num = [np.int(x) for x in f[6].split()]
+        ele_num = [int(x) for x in f[6].split()]
         assert len(ele_num) == len(ele_name)
         Nele = len(ele_name)
 
@@ -192,7 +196,7 @@ class PCC():
 
         q = np.zeros([3, Natom])
         for atom in range(Natom):
-            q[:, atom] = [np.float(x) for x in f[8+atom].split()[:3]]
+            q[:, atom] = [float(x) for x in f[8+atom].split()[:3]]
 
         # convert to Cartesian coordinate
         if f[7].strip()[0].lower() == 'd':
@@ -227,7 +231,7 @@ class PCC():
         g.write('%nprocs={}\n'.format(self.gau_nprocs))
         g.write('%mem={}GB\n'.format(self.gau_memory))
         g.write('#p {}/genecp '.format(self.gau_method))
-        g.write('nosymm\n')
+        g.write('{} \n'.format(self.gau_symm))
         g.write('scf(maxcycle={}, conver={})\n'.format(self.gau_maxcycle, self.gau_conv))
         g.write('\n')
         g.write('initial ab inito calculation for PCC\n\n')
@@ -262,7 +266,7 @@ class PCC():
         assert len(f) == self.Natom
 
         # chg = np.zeros(Natoms)
-        chg = [np.float(line.split()[-1]) for line in f]
+        chg = [float(line.split()[-1]) for line in f]
         assert len(chg) == self.Natom
 
         self.chg = chg
@@ -303,7 +307,8 @@ class PCC():
         g.write('%nprocs={}\n'.format(self.gau_nprocs))
         g.write('%mem={}GB\n'.format(self.gau_memory))
         g.write('#p {}/genecp '.format(self.gau_method))
-        g.write('nosymm charge\n')
+        g.write('{} '.format(self.gau_symm))
+        g.write('charge\n')
         g.write('scf(maxcycle={}, conver={}) '.format(self.gau_maxcycle, self.gau_conv))
         g.write('guess=read\n')
         g.write('\n')
@@ -417,24 +422,27 @@ class PCC():
                     if os.path.exists(chg_path):
                         it_list.append(dir)
         Nit = len(it_list)
+        it_list.sort(key=int)
+        it_int = [int(k) for k in it_list]
+
         chg = np.zeros([self.Natom, Nit])
         chg_dif = np.zeros([self.Natom, Nit-1])
 
         for i, it in enumerate(it_list):
             chg_path = os.path.join(it, '{}.chg'.format(it))
             chg_file = open(chg_path, 'r').readlines()
-            chg[:, i] = [np.float(line.split()[-1]) for line in chg_file]
+            chg[:, i] = [float(line.split()[-1]) for line in chg_file]
             if i > 0:
                 chg_dif[:, i-1] = np.abs(chg[:, i] - chg[:, i-1])
 
-        for i in range(Nit):
-            plt.scatter(range(Nit), chg[i, :])
-            plt.plot(range(Nit), chg[i, :])
+        for i in range(self.Natom):
+            plt.scatter(it_int, chg[i, :])
+            plt.plot(it_int, chg[i, :])
         plt.savefig('charge_evolution.svg', format='svg')
         plt.close()
 
-        for i in range(Nit-1):
-            plt.plot(np.array(range(Nit-1))+1, chg_dif[i, :])
+        for i in range(self.Natom):
+            plt.plot(it_int[1:], chg_dif[i, :])
         plt.yscale('log')
         plt.savefig('charge_evolution_difference.svg', format='svg')
 

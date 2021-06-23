@@ -57,7 +57,10 @@ fi
 gaucov=`grep -c -s 'Normal termination' ${i}.log`
 if [[ "${gaucov}" -eq 0 ]]; then
 echo [ERROR] Iteration ${i}, Gaussian not converged, ${ePCC} exit! 
-exit; fi
+exit
+else
+formchk ${i}.chk ${i}.fchk
+fi
 
 chgcov=`grep -c -s 'If outputting atom coordinates' ${i}_resp.log`
 if [[ "${chgcov}" -eq 0 ]]; then
