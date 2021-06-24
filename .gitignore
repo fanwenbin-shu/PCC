@@ -11,6 +11,7 @@ make*
 *.pdb
 *.vmd
 *.chg
+*.udb
 
 # figures
 *.svg
