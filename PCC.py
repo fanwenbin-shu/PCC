@@ -251,6 +251,7 @@ class PCC():
         g.write('%mem={}GB\n'.format(self.gau_memory))
         g.write('#p {}/genecp '.format(self.gau_method))
         g.write('{} \n'.format(self.gau_symm))
+        #g.write('iop(6/33=2,6/42=6,6/50=1) pop=mk ')
         g.write('scf(maxcycle={}, conver={})\n'.format(self.gau_maxcycle, self.gau_conv))
         g.write('\n')
         g.write('initial ab inito calculation for PCC\n\n')
@@ -262,7 +263,7 @@ class PCC():
         g.write('-C -N -O -H -F -Cl 0\n{}\n****\n'.format(self.gau_basis))
         g.write('-Mn -Br -I 0\nSDD\n****\n\n')
         g.write('-Mn -Br 0\nSDD\n\n')
-        # g.write('antechamber-ini.esp\n\nantechamber.esp\n\n')
+        #g.write('0-ini.gesp\n\n0.gesp\n\n')
         g.write('\n\n\n')
 
         g.close()
@@ -327,6 +328,7 @@ class PCC():
         g.write('%mem={}GB\n'.format(self.gau_memory))
         g.write('#p {}/genecp '.format(self.gau_method))
         g.write('{} '.format(self.gau_symm))
+        g.write('iop(6/33=2,6/42=6,6/50=1) pop=mk ')
         g.write('charge\n')
         g.write('scf(maxcycle={}, conver={}) '.format(self.gau_maxcycle, self.gau_conv))
         g.write('guess=read\n')
@@ -385,6 +387,7 @@ class PCC():
         g.write('-C -N -O -H -Cl 0\n{}\n****\n'.format(self.gau_basis))
         g.write('-Mn -Br 0\nSDD\n****\n\n')
         g.write('-Mn -Br 0\nSDD\n\n')
+        g.write('{}-ini.gesp\n{}.gesp'.format(it, it))
         g.write('\n\n\n')
         p.write('END')
 
