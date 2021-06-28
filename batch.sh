@@ -4,7 +4,7 @@ ePCC=ePCC
 
 #yes | cp "/mnt/hgfs/D/20210616 PCC/PCC.py" .
 pwd=`pwd`
-dos2unix -q *
+# dos2unix -q * # put this line to submit script
 done=done
 mkdir ${done}
 
@@ -29,7 +29,6 @@ do
     fi
     
     cd ${i}
-    dos2unix -q *
     
     echo [${ePCC}] Iteration ${i}, Gaussian calculation...
     gaucov=`grep -c -s 'Normal termination' ${i}.log`
