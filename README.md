@@ -9,11 +9,17 @@ The author thank Xiaoqing ZHU (carolin118@shu.edu.cn) for the understanding of t
 
 Please CITE the article (10.1016/j.cplett.2019.06.019) if PCC or this ePCC code was used in your work. 
 
-# Motive
+## Motive
 
 The short-ranged electric interaction is significant in a MD simulation. Nearly all types of atomic charge only describe the charge of molecules in vacuum. But how does the atomic charge changed in the periodic crystal? 
 
 Prof. Yongle proposed a refined method, polarized crystal charge (PCC), based on polarized protein-specific charge (PCC). The PCC is suitable for any periodic system. We can obtain PCCs easily using Gaussian and Multiwfn. 
+
+## Feathers
+
+1. Very simple to use. Only one structure file (POSCAR or CONTCAR) is needed to calculate PCCs iteratively. 
+2. Automatically construct supercell and remove overlapped point-charge atoms. 
+3. Judge all molecule in the initial structure and sum the charges. 
 
 # Usage
 

@@ -63,6 +63,7 @@ done
 cd ${pwd}
 if [[ "${cov}" -gt 0 ]]; then
     python ${main} p
+    python ${main} md
 else
     echo 'PCC not converged in specified steps! '
     exit

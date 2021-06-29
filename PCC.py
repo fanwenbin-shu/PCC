@@ -2,7 +2,9 @@ import sys
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import networkx
 from PCC_para import *
+from PCC_const import *
 
 class PCC():
 
@@ -13,6 +15,7 @@ class PCC():
         print('Thank Xiaoqing ZHU for the help of mastering PCC! \n')
 
         self.sym_delta = 1e-4
+
         p3elements = ['H', 'He',
                       'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
                       'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar']
@@ -36,6 +39,10 @@ class PCC():
             self.gau_symm = ''
         else:
             self.gau_symm = 'nosymm'
+        if gau_optwave:
+            self.gau_optwave = 'stable=opt'
+        else:
+            self.gau_optwave = ''
         self.max_diff_crt = max_diff_crt
         self.lcp2k = lcp2k
         
@@ -46,6 +53,37 @@ class PCC():
         v1_u = v1 / np.linalg.norm(v1)
         v2_u = v2 / np.linalg.norm(v2)
         return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+    # find a whole molecules from topology.
+    # ref: https://stackoverflow.com/questions/4842613/merge-lists-that-share-common-elements/4842897
+    def find_mol_graph(self, l):
+        if len(l) == 0:
+            return []
+        out = []
+        while len(l) > 0:
+            first, *rest = l
+            first = set(first)
+
+            lf = -1
+            while len(first) > lf:
+                lf = len(first)
+
+                rest2 = []
+                for r in rest:
+                    if len(first.intersection(set(r))) > 0:
+                        first |= set(r)
+                    else:
+                        rest2.append(r)
+                rest = rest2
+
+            out.append(first)
+            l = rest
+
+        out_list = []
+        for item in out:
+            out_list.append(sorted(item))
+
+        return out_list
 
     def const2para(self):
 
@@ -67,6 +105,9 @@ class PCC():
 
     def print_resp_option(self):
 
+        # The vdW radius only was defined for elements in first three rows.
+        # You will be prompted when the element are beyond first three rows.
+        # Hence, extra line-breaks will be needed.
         f = open('resp.in', 'w')
         f.write('7\n18\n5\n1\n../sym_atom\n1\n')
 
@@ -209,7 +250,7 @@ class PCC():
         ele_list = []
         for ele in range(Nele):
             for i in range(ele_num[ele]):
-                ele_list.append(ele_name[ele])
+                ele_list.append(ele_name[ele].strip())
         assert len(ele_list) == np.sum(ele_num)
         Natom = len(ele_list)
 
@@ -251,7 +292,7 @@ class PCC():
         g.write('%mem={}GB\n'.format(self.gau_memory))
         g.write('#p {}/genecp '.format(self.gau_method))
         g.write('{} \n'.format(self.gau_symm))
-        g.write('stable=opt ')
+        g.write('{} '.format(self.gau_optwave))
         #g.write('iop(6/33=2,6/42=6,6/50=1) pop=mk ')
         g.write('scf(maxcycle={}, conver={})\n'.format(self.gau_maxcycle, self.gau_conv))
         g.write('\n')
@@ -279,9 +320,12 @@ class PCC():
 
     def read_chg(self, it):
 
-        print('Reading charge file in last iteration `{}`...'.format(it))
-        chg_file = os.path.join(str(it), '{}.chg'.format(it))
-        assert os.path.exists(chg_file), '[ERR] The requested charge file not exists! '
+        if it.isnumeric():
+            print('Reading charge file in last iteration `{}`...'.format(it))
+            chg_file = os.path.join(str(it), '{}.chg'.format(it))
+        else:
+            chg_file = '{}.chg'.format(it)
+        assert os.path.exists(chg_file), '[ERR] The requested charge file not exists! {}'.format(chg_file)
 
         f = open(chg_file, 'r').readlines()
         assert len(f) == self.Natom
@@ -329,7 +373,7 @@ class PCC():
         g.write('%mem={}GB\n'.format(self.gau_memory))
         g.write('#p {}/genecp '.format(self.gau_method))
         g.write('{} '.format(self.gau_symm))
-        g.write('stable=opt ')
+        g.write('{} '.format(self.gau_optwave))
         g.write('iop(6/33=2,6/42=6,6/50=1) pop=mk ')
         g.write('charge\n')
         g.write('scf(maxcycle={}, conver={}) '.format(self.gau_maxcycle, self.gau_conv))
@@ -416,6 +460,58 @@ class PCC():
 
         return
 
+    def judge_mol(self):
+
+        dis_mat = np.zeros([self.Natom, self.Natom])
+        for i in range(self.Natom):
+            dis_mat[i, :] = np.linalg.norm(self.q[:, :] - self.q[:, i, None], axis=0)
+
+        # mol_label = [1] * self.Natom
+        mol = []
+        for i in range(self.Natom):
+            atom = [i]
+            for j in range(self.Natom):
+                if i != j:# and mol_label[j] > 0:
+                    d = covr[self.ele_list[i]] + covr[self.ele_list[j]]
+                    if dis_mat[i, j] <= d * 1.15: # distance < covalent radius * 115%, then they bonded.
+                        # mol_label[j] = -1
+                        atom.append(j)
+
+            if len(atom) > 1:
+                mol.append(atom)
+
+        self.mol_list = self.find_mol_graph(mol)
+        self.Nmol = len(self.mol_list)
+
+        print('Number of molecules : {}'.format(self.Nmol))
+
+        return
+
+    def check_mol_charge(self):
+
+        if not os.path.exists('conv.chg'):
+            max_it = 0
+            for folder in os.listdir('.'):
+                if folder.isnumeric():
+                    if int(folder) > max_it:
+                        max_it = int(folder)
+            self.read_chg(str(max_it))
+        else:
+            self.read_chg('conv')
+
+        print('Molecule list : ')
+        for i, item in enumerate(self.mol_list):
+            mol_atom_list = [self.ele_list[i] for i in item]
+            mol_atom_set = set(mol_atom_list)
+            print('    {}. '.format(i+1), end='')
+            for atom in list(mol_atom_set):
+                print('{}{} '.format(atom, mol_atom_list.count(atom)), end='')
+            mol_chg = sum([self.chg[k] for k in item])
+            print(', \tcharge= {:8.5f}'.format(mol_chg), end='')
+            print('')
+
+        return
+
     def init_calc(self):
 
         self.write_init_gau()
@@ -476,18 +572,28 @@ class PCC():
 
         return
 
+    def gen_md(self):
+
+        self.judge_mol()
+        self.check_mol_charge()
+
+        return
+
     def main(self):
 
         self.read_para()
         self.read_vasp()
 
-        opt = str(sys.argv[1]).strip()
+        opt = str(sys.argv[1]).strip()[0].lower()
 
         if opt == '0':
             self.init_calc()
         elif opt == 'p':
             self.plot_chg()
+        elif opt == 'm':
+            self.gen_md()
         else:
+            assert opt.isnumeric()
             self.iter_calc(int(opt))
 
         return

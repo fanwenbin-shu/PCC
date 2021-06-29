@@ -12,8 +12,9 @@ gau_memory = 120 # unit : GB
 gau_nprocs = 28
 gau_method = 'b3lyp'
 gau_basis = '6-31g*'
-gau_maxcycle = 4096
+gau_maxcycle = 128
 gau_conv = 7 # 8 is default
+gau_optwave = False # True for stable=opt
 gau_symm = False
 
 # convergence criteria of PCC
